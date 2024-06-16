@@ -24,6 +24,7 @@ const ChessBoard: React.FC = () => {
 
         const newChessboard = new Chessboard(chessboard.rows, chessboard.cols);
         newChessboard.setStartPosition([row, col]);
+        setChessboard(newChessboard);
 
         setLoading(true);
         const knightTourService = new KnightTourService(newChessboard)
