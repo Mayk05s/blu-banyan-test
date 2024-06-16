@@ -1,10 +1,12 @@
-import React, {FC} from 'react';
+import React, {FC, SyntheticEvent, useState} from 'react';
 import {useChessBoard} from "../../containers/ChessBoardContext";
-import {Typography} from "@mui/material";
+import {Alert, Box, Snackbar, Typography, useTheme} from "@mui/material";
+
 const MoveList: FC = () => {
     const {chessboard} = useChessBoard();
-
-    const formattedMoves =  chessboard.getLetterRepresentation().reduce((acc: string[], move: string, index: number) => {
+    const theme = useTheme();
+    const [open, setOpen] = useState(false);
+    const formattedMoves = chessboard.getLetterRepresentation().reduce((acc: string[], move: string, index: number) => {
         const chunkIndex = Math.floor(index / 5);
 
         if (!acc[chunkIndex]) {
@@ -16,21 +18,45 @@ const MoveList: FC = () => {
         return acc;
     }, []);
 
+    React.useEffect(() => {
+        if (chessboard.tourPath?.length === 0 && chessboard.completed) {
+            setOpen(true);
+        }
+    }, [chessboard]);
+
+    const handleClose = (event: Event | SyntheticEvent<any, Event>, reason?: string) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setOpen(false);
+    };
     return (
-        <div>
-            <h2>Moves</h2>
-            <div>
-                {/*{JSON.stringify(chessboard.tourPath)}*/}
+        <Box >
+            <Typography variant="h4" className="mt5" gutterBottom>Moves</Typography>
+            <Box mb={2}>
                 {formattedMoves && formattedMoves.map((row, index) => (
-                    <div key={index}>{row}</div>
+                    <Typography key={index} variant="body1">{row}</Typography>
                 ))}
-            </div>
-            {chessboard.tourPath && !chessboard.completed && (
-                <Typography variant="body2" sx={{color: 'red'}} gutterBottom>
-                    Not completed! Try another start point
-                </Typography>
+            </Box>
+            {chessboard.tourPath?.length === 0 && chessboard.completed && (
+                <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" sx={{ color: theme.palette.error.main }}>
+                        Not completed!
+                    </Typography>
+                </Box>
             )}
-        </div>
+            <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert
+                    onClose={handleClose}
+                    severity="warning"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    No way found. Try another starting point!
+                </Alert>
+            </Snackbar>
+        </Box>
     );
 };
 

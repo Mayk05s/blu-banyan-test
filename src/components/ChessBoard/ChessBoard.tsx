@@ -19,19 +19,28 @@ const ChessBoard: React.FC = () => {
         }
     }, [chessboard.startPosition, chessboard.rows, chessboard.cols]);
 
+    const updateChessboard = (chessboard: Chessboard) => {
+        const newChessboard = new Chessboard(chessboard.rows, chessboard.cols);
+        if (chessboard.startPosition) {
+            newChessboard.setStartPosition(chessboard.startPosition);
+        }
+        if (chessboard.tourPath) {
+            newChessboard.setTourPath(chessboard.tourPath);
+        }
+        setChessboard(newChessboard);
+        return newChessboard;
+    }
     const handleSquareClick = async (row: number, col: number) => {
         setStartPosition([row, col]);
-
-        const newChessboard = new Chessboard(chessboard.rows, chessboard.cols);
-        newChessboard.setStartPosition([row, col]);
-        setChessboard(newChessboard);
+        chessboard.setStartPosition([row, col]);
+        const newChessboard = updateChessboard(chessboard);
 
         setLoading(true);
         const knightTourService = new KnightTourService(newChessboard)
         const newKnightsTour = await knightTourService.solveKnightTour();
         setLoading(false);
-        newChessboard.setTourPath(newKnightsTour);
-        setChessboard(newChessboard);
+        chessboard.setTourPath(newKnightsTour);
+        updateChessboard(chessboard);
     };
 
     const createBoard = () => {
@@ -79,7 +88,7 @@ const ChessBoard: React.FC = () => {
                 </table>
             </Box>
             <Backdrop open={loading} style={{color: '#fff', zIndex: 1500}}> {/* Добавьте Backdrop */}
-                <CircularProgress color="inherit" />
+                <CircularProgress color="inherit"/>
             </Backdrop>
         </Box>
     );
