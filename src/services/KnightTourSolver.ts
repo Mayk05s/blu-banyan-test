@@ -69,7 +69,6 @@ export class KnightTourSolver {
     }
 
     static async recursiveTour(board: number[][], x: number, y: number, path: [number, number][] = []): Promise<[number, number][] | false> {
-        console.log(board, x, y, path);
         board[x][y] = 1; // mark the current position as visited
         path.push([x, y]); // add the current position to the path
         if (path.length === KnightTourSolver.getBoardSize(board)) {
