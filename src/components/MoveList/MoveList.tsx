@@ -27,7 +27,7 @@ const MoveList: FC = () => {
             </div>
             {chessboard.tourPath && !chessboard.completed && (
                 <Typography variant="body2" sx={{color: 'red'}} gutterBottom>
-                    Not completed
+                    Not completed! Try another start point
                 </Typography>
             )}
         </div>
