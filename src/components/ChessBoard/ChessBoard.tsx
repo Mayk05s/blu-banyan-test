@@ -1,23 +1,79 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import './ChessBoard.scss';
 import {useChessBoard} from "../../containers/ChessBoardContext";
 import {KnightTourService} from "../../services/KnightTourService";
 import {Backdrop, Box, CircularProgress, Typography} from "@mui/material";
 import {Chessboard} from "../../model/Chessboard";
+import {animated, useSpring} from '@react-spring/web';
 
 const ChessBoard: React.FC = () => {
     const {chessboard, setChessboard} = useChessBoard();
 
-    // Use Local State for Tour Results
     const [startPosition, setStartPosition] = useState<[number, number] | null>(null);
+    const [tourPath, setTourPath] = useState<[number, number][] | false>([]);
+    const [currentMove, setCurrentMove] = useState(0);
     const [loading, setLoading] = useState<boolean>(false);
+    const chessboardRef = useRef<HTMLTableElement>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // useEffect to Trigger Tour Calculation
-    useEffect(() => {
-        if (startPosition) {
-            console.log('newKnightsTour:');
+    const [styles, api] = useSpring(() => ({
+        from: {x: 0, y: 0}
+    }));
+
+    const getCellCoordinates = (row: number, col: number) => {
+        if (chessboardRef.current) {
+            const cell = chessboardRef.current.rows[row + 1].cells[col + 1];
+            const {offsetLeft, offsetTop, offsetWidth, offsetHeight} = cell;
+            return {x: offsetLeft + offsetWidth / 2 - 25, y: offsetTop + offsetHeight / 2 - 25};
         }
-    }, [chessboard.startPosition, chessboard.rows, chessboard.cols]);
+        return {x: 0, y: 0};
+    };
+
+    const moveKnight = (nextRow: number, nextCol: number) => {
+        if (chessboardRef?.current) {
+            const {x, y} = getCellCoordinates(nextRow, nextCol);
+            api.start({
+                x,
+                y,
+                config: {tension: 280, friction: 60}
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+        }
+        setCurrentMove(0); // Reset currentMove on new startPosition or tourPath
+
+        if (startPosition) {
+            moveKnight(...startPosition);
+        }
+
+        if (tourPath && tourPath.length > 0) {
+            moveKnight(...tourPath[0]);
+            intervalRef.current = setInterval(() => {
+                setCurrentMove((prevMove) => {
+                    const nextMove = prevMove + 1;
+                    if (nextMove < tourPath.length) {
+                        const [nextRow, nextCol] = tourPath[nextMove];
+                        moveKnight(nextRow, nextCol);
+                    } else {
+                        if (intervalRef.current) {
+                            clearInterval(intervalRef.current);
+                        }
+                    }
+                    return nextMove;
+                });
+            }, 600);
+        }
+
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, [startPosition,tourPath, api]);
 
     const updateChessboard = (chessboard: Chessboard) => {
         const newChessboard = new Chessboard(chessboard.rows, chessboard.cols);
@@ -29,17 +85,19 @@ const ChessBoard: React.FC = () => {
         }
         setChessboard(newChessboard);
         return newChessboard;
-    }
+    };
+
     const handleSquareClick = async (row: number, col: number) => {
         setStartPosition([row, col]);
         chessboard.setStartPosition([row, col]);
         const newChessboard = updateChessboard(chessboard);
 
         setLoading(true);
-        const knightTourService = new KnightTourService(newChessboard)
+        const knightTourService = new KnightTourService(newChessboard);
         const newKnightsTour = await knightTourService.solveKnightTour();
         setLoading(false);
         chessboard.setTourPath(newKnightsTour);
+        setTourPath(newKnightsTour);
         updateChessboard(chessboard);
     };
 
@@ -53,7 +111,7 @@ const ChessBoard: React.FC = () => {
                     let squareClass = isWhite ? 'chess-square white-square' : 'chess-square black-square';
 
                     if (chessboard.startPosition && chessboard.startPosition[0] === rowIndex && chessboard.startPosition[1] === colIndex) {
-                        squareClass += ' highlighted-square';
+                        squareClass += ' start-square';
                     }
                     return (
                         <td
@@ -61,7 +119,7 @@ const ChessBoard: React.FC = () => {
                             onClick={() => handleSquareClick(rowIndex, colIndex)}
                             className={squareClass}
                         >
-                            {squareData}
+                            <span>{squareData}</span>
                         </td>
                     );
                 })}
@@ -74,8 +132,8 @@ const ChessBoard: React.FC = () => {
             <Typography variant="body2" sx={{color: 'red'}} gutterBottom>
                 {chessboard.startPosition ? 'Click on another point to change the calculation.' : 'Please click to start the calculation.'}
             </Typography>
-            <Box display="flex" justifyContent="center">
-                <table id="chessboard">
+            <Box display="flex" position="relative">
+                <table ref={chessboardRef} className="chess-board">
                     <tbody>
                     <tr>
                         <td className="column-label"></td>
@@ -86,8 +144,12 @@ const ChessBoard: React.FC = () => {
                     {createBoard()}
                     </tbody>
                 </table>
+                <animated.div className="knight" style={{
+                    ...styles
+                }}>♞
+                </animated.div>
             </Box>
-            <Backdrop open={loading} style={{color: '#fff', zIndex: 1500}}> {/* Добавьте Backdrop */}
+            <Backdrop open={loading} style={{color: '#fff', zIndex: 1500}}>
                 <CircularProgress color="inherit"/>
             </Backdrop>
         </Box>
