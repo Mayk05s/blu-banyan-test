@@ -37,7 +37,7 @@ const MoveList: FC = () => {
 
     return (
         <>
-            {/*<Draggable disabled={!isDesktop}>*/}
+            <Draggable disabled={!isDesktop}>
                 <Box
                     sx={{
                         position: isDesktop ? 'fixed' : 'default',
@@ -72,7 +72,7 @@ const MoveList: FC = () => {
                         </AccordionDetails>
                     </Accordion>
                 </Box>
-            {/*</Draggable>*/}
+            </Draggable>
 
             <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}
                       anchorOrigin={{vertical: 'bottom', horizontal: 'center'}}>
