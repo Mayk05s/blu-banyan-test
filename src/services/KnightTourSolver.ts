@@ -32,14 +32,23 @@ export class KnightTourSolver {
     static workerRecursiveTour(board: number[][], x: number, y: number, path: [number, number][]): Promise<[number, number][] | false> {
         return new Promise((resolve, reject) => {
             if (KnightTourSolver.activeWorkers >= KnightTourSolver.maxWorkers) {
-                resolve(KnightTourSolver.recursiveTour(board, x, y, path));
+                try {
+                    const result = KnightTourSolver.recursiveTour(board, x, y, path);
+                    resolve(result);
+                } catch (e) {
+                    reject(e);
+                }
                 return;
             }
 
             const worker = new Worker(new URL('../services/knightTourWorker.ts', import.meta.url));
             worker.onmessage = (e: MessageEvent) => {
                 const result = e.data;
-                resolve(result);
+                if (result) {
+                    resolve(result);
+                } else {
+                    reject('No path found');
+                }
                 worker.terminate();
                 KnightTourSolver.activeWorkers--;
             };
