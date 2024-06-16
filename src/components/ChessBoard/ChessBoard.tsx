@@ -11,10 +11,9 @@ const ChessBoard: React.FC = () => {
 
     const [startPosition, setStartPosition] = useState<[number, number] | null>(null);
     const [tourPath, setTourPath] = useState<[number, number][] | false>([]);
-    const [currentMove, setCurrentMove] = useState(0);
     const [loading, setLoading] = useState<boolean>(false);
     const chessboardRef = useRef<HTMLTableElement>(null);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [styles, api] = useSpring(() => ({
         from: {x: 0, y: 0}
@@ -22,9 +21,11 @@ const ChessBoard: React.FC = () => {
 
     const getCellCoordinates = (row: number, col: number) => {
         if (chessboardRef.current) {
-            const cell = chessboardRef.current.rows[row + 1].cells[col + 1];
-            const {offsetLeft, offsetTop, offsetWidth, offsetHeight} = cell;
-            return {x: offsetLeft + offsetWidth / 2 - 25, y: offsetTop + offsetHeight / 2 - 25};
+            if (row + 1 < chessboardRef.current.rows.length && col + 1 < chessboardRef.current.rows[row + 1].cells.length) {
+                const cell = chessboardRef.current.rows[row + 1].cells[col + 1];
+                const {offsetLeft, offsetTop, offsetWidth, offsetHeight} = cell;
+                return {x: offsetLeft + offsetWidth / 2 - 25, y: offsetTop + offsetHeight / 2 - 25};
+            }
         }
         return {x: 0, y: 0};
     };
@@ -40,40 +41,40 @@ const ChessBoard: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
+    const clearExistingTimeout = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
         }
-        setCurrentMove(0); // Reset currentMove on new startPosition or tourPath
+    };
 
-        if (startPosition) {
-            moveKnight(...startPosition);
+    const startTourAnimation = (moveIndex: number) => {
+        if (tourPath && moveIndex < tourPath.length) {
+            const [nextRow, nextCol] = tourPath[moveIndex];
+            moveKnight(nextRow, nextCol);
+            clearExistingTimeout(); // Ensure to clear any existing timeout before setting a new one
+            timeoutRef.current = setTimeout(() => {
+                startTourAnimation(moveIndex + 1);
+            }, 600);
+        } else {
+            clearExistingTimeout();
         }
+    };
+
+    useEffect(() => {
+        clearExistingTimeout();
+        const [row, col] = startPosition || [-1, -1];
+        moveKnight(row, col);
 
         if (tourPath && tourPath.length > 0) {
-            moveKnight(...tourPath[0]);
-            intervalRef.current = setInterval(() => {
-                setCurrentMove((prevMove) => {
-                    const nextMove = prevMove + 1;
-                    if (nextMove < tourPath.length) {
-                        const [nextRow, nextCol] = tourPath[nextMove];
-                        moveKnight(nextRow, nextCol);
-                    } else {
-                        if (intervalRef.current) {
-                            clearInterval(intervalRef.current);
-                        }
-                    }
-                    return nextMove;
-                });
-            }, 600);
+            startTourAnimation(0);
         }
+    }, [startPosition, tourPath]);
 
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-            }
-        };
-    }, [startPosition,tourPath, api]);
+    useEffect(() => {
+        setStartPosition(null);
+        setTourPath(false);
+    }, [chessboard.rows, chessboard.cols]);
 
     const updateChessboard = (chessboard: Chessboard) => {
         const newChessboard = new Chessboard(chessboard.rows, chessboard.cols);
