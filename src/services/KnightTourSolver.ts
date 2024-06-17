@@ -1,5 +1,4 @@
 import {IChessboard} from "../types/chessboard.type";
-import {ISolverState} from "../types/SolverResult.type";
 
 const directions = [
     [2, 1], [1, 2], [-1, 2], [-2, 1],
@@ -18,15 +17,19 @@ export class KnightTourSolver {
         return board.length * board[0].length;
     }
 
-    static startAsyncTour(chessboard: IChessboard, state: ISolverState, timeout = 5000): Promise<[number, number][] | false> {
-        return new Promise((resolve) => {
-            KnightTourSolver.startTour(chessboard, state).then((result) => {
-                resolve(result);
-            });
-            setTimeout(() => {
-                resolve(false);
-            }, timeout);
-        });
+
+    static async startTour(chessboard: IChessboard): Promise<[number, number][] | false> {
+        if (!chessboard.startPosition) {
+            return false;
+        }
+        KnightTourSolver.activeWorkers = 0;
+        const [startX, startY] = chessboard.startPosition;
+        const board = KnightTourSolver.getBoard(chessboard);
+        try {
+            return await KnightTourSolver.recursiveTour(board, startX, startY, []);
+        } catch {
+            return false;
+        }
     }
 
     static workerRecursiveTour(board: number[][], x: number, y: number, path: [number, number][]): Promise<[number, number][] | false> {
@@ -62,20 +65,6 @@ export class KnightTourSolver {
         });
     }
 
-    static async startTour(chessboard: IChessboard, state: ISolverState): Promise<[number, number][] | false> {
-        if (!chessboard.startPosition) {
-            return false;
-        }
-        KnightTourSolver.activeWorkers = 0;
-        const [startX, startY] = chessboard.startPosition;
-        const board = KnightTourSolver.getBoard(chessboard);
-        try {
-            const path = await KnightTourSolver.recursiveTour(board, startX, startY, []);
-            return path;
-        } catch {
-            return false;
-        }
-    }
 
     static async recursiveTour(board: number[][], x: number, y: number, path: [number, number][] = []): Promise<[number, number][] | false> {
         board[x][y] = 1; // mark the current position as visited
