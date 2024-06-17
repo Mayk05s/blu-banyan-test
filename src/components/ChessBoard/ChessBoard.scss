@@ -17,7 +17,7 @@
   text-align: center;
   vertical-align: middle;
   cursor: pointer;
-  transition: background-color 0.3s, border 0.3s;
+  transition: background-color 0.3s;
   position: relative;
 
   &:hover {
@@ -27,15 +27,19 @@
 
 .white-square {
   background-color: #f0d9b5;
+  //border-color: #f0d9b5;
 }
 
 .black-square {
   background-color: #b58863;
+  //border-color: #b58863;
 }
 
 .start-square {
-  width: 50px;
-  height: 50px;
+  //border-color: red;
+
+  width: 44px;
+  height: 44px;
   border: 3px solid red;
 }
 
